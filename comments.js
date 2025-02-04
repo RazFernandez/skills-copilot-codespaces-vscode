@@ -1,38 +1,48 @@
-// Create a web server
+// Create web server
 const express = require('express');
-const app = express();
 const bodyParser = require('body-parser');
 const fs = require('fs');
+const path = require('path');
 
-// Use body-parser to parse JSON request bodies
+const app = express();
+const PORT = 3000;
+
+// Middleware to parse JSON bodies
 app.use(bodyParser.json());
 
-// Define the path to the comments file
-const commentsFilePath = 'comments.json';
+// Middleware to serve static files from the "public" directory
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Route to get all comments
+// Endpoint to get all comments
 app.get('/comments', (req, res) => {
-    fs.readFile(commentsFilePath, 'utf8', (err, data) => {
+    fs.readFile('comments.json', 'utf8', (err, data) => {
         if (err) {
-            return res.status(500).json({ error: 'Failed to read comments file' });
+            res.status(500).json({ error: 'Failed to read comments' });
+            return;
         }
-        const comments = JSON.parse(data);
-        res.json(comments);
+        res.json(JSON.parse(data));
     });
 });
 
-// Route to add a new comment
+// Endpoint to add a new comment
 app.post('/comments', (req, res) => {
     const newComment = req.body;
-    fs.readFile(commentsFilePath, 'utf8', (err, data) => {
+
+    // Read existing comments
+    fs.readFile('comments.json', 'utf8', (err, data) => {
         if (err) {
-            return res.status(500).json({ error: 'Failed to read comments file' });
+            res.status(500).json({ error: 'Failed to read comments' });
+            return;
         }
+
         const comments = JSON.parse(data);
         comments.push(newComment);
-        fs.writeFile(commentsFilePath, JSON.stringify(comments, null, 2), (err) => {
+
+        // Write updated comments back to file
+        fs.writeFile('comments.json', JSON.stringify(comments, null, 4), 'utf8', (err) => {
             if (err) {
-                return res.status(500).json({ error: 'Failed to write to comments file' });
+                res.status(500).json({ error: 'Failed to save comment' });
+                return;
             }
             res.status(201).json(newComment);
         });
@@ -40,7 +50,6 @@ app.post('/comments', (req, res) => {
 });
 
 // Start the server
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`Server is running on http://localhost:${PORT}`);
 });
